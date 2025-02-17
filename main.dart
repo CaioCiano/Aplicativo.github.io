@@ -3,15 +3,16 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(PlanetApp());
 }
 
-class MyApp extends StatelessWidget {
+class PlanetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: PlanetListScreen(),
+      theme: ThemeData(primarySwatch: Colors.green),
+      home: PlanetHomeScreen(),
     );
   }
 }
@@ -19,19 +20,19 @@ class MyApp extends StatelessWidget {
 class Planet {
   int? id;
   String name;
-  String nickname;
+  String alias;
   double distance;
-  double size;
+  double diameter;
 
-  Planet({this.id, required this.name, this.nickname = '', required this.distance, required this.size});
+  Planet({this.id, required this.name, this.alias = '', required this.distance, required this.diameter});
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
-      'nickname': nickname,
+      'alias': alias,
       'distance': distance,
-      'size': size,
+      'diameter': diameter,
     };
   }
 
@@ -39,18 +40,18 @@ class Planet {
     return Planet(
       id: map['id'],
       name: map['name'],
-      nickname: map['nickname'] ?? '',
+      alias: map['alias'] ?? '',
       distance: map['distance'],
-      size: map['size'],
+      diameter: map['diameter'],
     );
   }
 }
 
-class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+class DBHelper {
+  static final DBHelper instance = DBHelper._init();
   static Database? _database;
 
-  DatabaseHelper._init();
+  DBHelper._init();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -70,46 +71,20 @@ class DatabaseHelper {
       CREATE TABLE planets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        nickname TEXT,
+        alias TEXT,
         distance REAL NOT NULL,
-        size REAL NOT NULL
+        diameter REAL NOT NULL
       )
     ''');
   }
-
-  Future<int> insertPlanet(Planet planet) async {
-    final db = await instance.database;
-    return await db.insert('planets', planet.toMap());
-  }
-
-  Future<List<Planet>> getPlanets() async {
-    final db = await instance.database;
-    final result = await db.query('planets');
-    return result.map((json) => Planet.fromMap(json)).toList();
-  }
-
-  Future<int> updatePlanet(Planet planet) async {
-    final db = await instance.database;
-    return await db.update(
-      'planets',
-      planet.toMap(),
-      where: 'id = ?',
-      whereArgs: [planet.id],
-    );
-  }
-
-  Future<int> deletePlanet(int id) async {
-    final db = await instance.database;
-    return await db.delete('planets', where: 'id = ?', whereArgs: [id]);
-  }
 }
 
-class PlanetListScreen extends StatefulWidget {
+class PlanetHomeScreen extends StatefulWidget {
   @override
-  _PlanetListScreenState createState() => _PlanetListScreenState();
+  _PlanetHomeScreenState createState() => _PlanetHomeScreenState();
 }
 
-class _PlanetListScreenState extends State<PlanetListScreen> {
+class _PlanetHomeScreenState extends State<PlanetHomeScreen> {
   List<Planet> planets = [];
 
   @override
@@ -119,30 +94,30 @@ class _PlanetListScreenState extends State<PlanetListScreen> {
   }
 
   Future<void> _loadPlanets() async {
-    final data = await DatabaseHelper.instance.getPlanets();
+    final data = await DBHelper.instance.getPlanets();
     setState(() {
       planets = data;
     });
   }
 
   void _deletePlanet(int id) async {
-    await DatabaseHelper.instance.deletePlanet(id);
+    await DBHelper.instance.deletePlanet(id);
     _loadPlanets();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Planetas')),
+      appBar: AppBar(title: Text('Lista de Planetas')),
       body: ListView.builder(
         itemCount: planets.length,
         itemBuilder: (context, index) {
           final planet = planets[index];
           return ListTile(
             title: Text(planet.name),
-            subtitle: Text(planet.nickname.isNotEmpty ? planet.nickname : 'Sem apelido'),
+            subtitle: Text(planet.alias.isNotEmpty ? planet.alias : 'Sem apelido'),
             trailing: IconButton(
-              icon: Icon(Icons.delete),
+              icon: Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deletePlanet(planet.id!),
             ),
           );
@@ -150,6 +125,7 @@ class _PlanetListScreenState extends State<PlanetListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
+        backgroundColor: Colors.green,
         onPressed: () {},
       ),
     );
